@@ -13,6 +13,14 @@ jobs:
 
     steps:
 
+      - name: Verificar ambiente da VM
+        run: |
+          whoami
+          docker --version
+          docker compose version
+          free -h
+
+
       - name: Atualizar projeto na VM
         run: |
           cd /srv/apps
@@ -27,10 +35,41 @@ jobs:
           git reset --hard origin/main
 
 
-      - name: Build e Deploy Docker
+      - name: Parar container antigo
         run: |
           cd /srv/apps/sistema-controle-operacional-api
 
-          docker compose up -d --build
+          docker compose down || true
 
+
+      - name: Limpar cache antigo do Docker
+        run: |
+          docker builder prune -f
+
+
+      - name: Construir imagem Docker
+        run: |
+          cd /srv/apps/sistema-controle-operacional-api
+
+          docker compose build --no-cache
+
+
+      - name: Iniciar API
+        run: |
+          cd /srv/apps/sistema-controle-operacional-api
+
+          docker compose up -d
+
+
+      - name: Verificar container
+        run: |
+          docker ps
+
+          sleep 10
+
+          docker logs --tail 50 sistema_controle_operacional_api
+
+
+      - name: Limpar imagens antigas
+        run: |
           docker image prune -f
