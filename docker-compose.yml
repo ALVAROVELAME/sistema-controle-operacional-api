@@ -1,0 +1,17 @@
+services:
+
+  sistema_controle_operacional_api:
+
+    build: .
+
+    container_name: sistema_controle_operacional_api
+
+    ports:
+      - "127.0.0.1:3001:8080"
+
+    env_file:
+      - .env
+
+    restart: unless-stopped
+
+    mem_limit: 200m

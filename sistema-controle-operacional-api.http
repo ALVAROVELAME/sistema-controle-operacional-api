@@ -1,0 +1,6 @@
+@sistema_controle_operacional_api_HostAddress = http://localhost:5032
+
+GET {{sistema_controle_operacional_api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
