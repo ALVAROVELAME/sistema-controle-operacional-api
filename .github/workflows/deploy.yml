@@ -16,17 +16,21 @@ jobs:
       - name: Atualizar projeto na VM
         run: |
           cd /srv/apps
-          
+
           if [ ! -d "sistema-controle-operacional-api" ]; then
             git clone https://github.com/ALVAROVELAME/sistema-controle-operacional-api.git
           fi
 
           cd sistema-controle-operacional-api
 
-          git pull
+          git fetch origin main
+          git reset --hard origin/main
+
 
       - name: Build e Deploy Docker
         run: |
           cd /srv/apps/sistema-controle-operacional-api
 
           docker compose up -d --build
+
+          docker image prune -f
