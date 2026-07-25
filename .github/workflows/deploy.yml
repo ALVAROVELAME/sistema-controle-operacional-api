@@ -1,0 +1,32 @@
+name: Deploy Sistema Controle Operacional API
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  deploy:
+
+    runs-on: self-hosted
+
+    steps:
+
+      - name: Atualizar projeto na VM
+        run: |
+          cd /srv/apps
+          
+          if [ ! -d "sistema-controle-operacional-api" ]; then
+            git clone https://github.com/ALVAROVELAME/sistema-controle-operacional-api.git
+          fi
+
+          cd sistema-controle-operacional-api
+
+          git pull
+
+      - name: Build e Deploy Docker
+        run: |
+          cd /srv/apps/sistema-controle-operacional-api
+
+          docker compose up -d --build
