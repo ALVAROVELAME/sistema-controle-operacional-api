@@ -15,7 +15,7 @@ app.MapGet("/", () =>
 {
     return Results.Ok(new
     {
-        status = "API Sistema de Controle Operacional funcionando"
+        status = "API Sistema de Controle Operacional funcionando , testando github actions",
     });
 });
 
