@@ -19,6 +19,7 @@ jobs:
           docker --version
           docker compose version
           free -h
+          docker system df
 
 
       - name: Atualizar projeto na VM
@@ -42,16 +43,11 @@ jobs:
           docker compose down || true
 
 
-      - name: Limpar cache antigo do Docker
-        run: |
-          docker builder prune -f
-
-
       - name: Construir imagem Docker
         run: |
           cd /srv/apps/sistema-controle-operacional-api
 
-          docker compose build --no-cache
+          docker compose build
 
 
       - name: Iniciar API
