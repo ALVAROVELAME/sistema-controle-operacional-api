@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SistemaControleOperacionalApi.Data;
+using SistemaControleOperacionalApi.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,7 +30,7 @@ var app = builder.Build();
 
 
 // cria banco/tabelas automaticamente
-using(var scope = app.Services.CreateScope())
+using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -37,11 +38,10 @@ using(var scope = app.Services.CreateScope())
 }
 
 
-if(app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
 
 
 app.MapGet("/", () =>
@@ -64,7 +64,6 @@ app.MapPost("/clientes", async (
     await db.SaveChangesAsync();
 
     return Results.Ok(cliente);
-
 });
 
 

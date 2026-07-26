@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using SistemaControleOperacionalApi.Models;
 
+
 namespace SistemaControleOperacionalApi.Data;
+
 
 public class AppDbContext : DbContext
 {
