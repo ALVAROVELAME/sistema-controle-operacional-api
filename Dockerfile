@@ -2,9 +2,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
-COPY . .
+COPY *.csproj .
 
 RUN dotnet restore
+
+COPY . .
 
 RUN dotnet publish -c Release -o /app/publish
 
@@ -15,8 +17,4 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-
-EXPOSE 8080
-
-
-ENTRYPOINT ["dotnet", "sistema-controle-operacional-api.dll"]
+ENTRYPOINT ["dotnet","sistema-controle-operacional-api.dll"]

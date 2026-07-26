@@ -1,20 +1,17 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+services:
 
-WORKDIR /src
+  sistema_controle_operacional_api:
 
-COPY *.csproj .
+    build: .
 
-RUN dotnet restore
+    container_name: sistema_controle_operacional_api
 
-COPY . .
+    ports:
+      - "127.0.0.1:3001:8080"
 
-RUN dotnet publish -c Release -o /app/publish
+    env_file:
+      - .env
 
+    restart: unless-stopped
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
-
-WORKDIR /app
-
-COPY --from=build /app/publish .
-
-ENTRYPOINT ["dotnet","sistema-controle-operacional-api.dll"]
+    mem_limit: 200m
