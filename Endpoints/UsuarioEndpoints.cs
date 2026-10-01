@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SistemaControleOperacionalApi.DTOs;
 using SistemaControleOperacionalApi.Extensions;
 using SistemaControleOperacionalApi.Repositories;
@@ -31,7 +32,7 @@ public static class UsuarioEndpoints
         // ---------- DELETE /api/usuarios/me - protegido ----------
         group.MapDelete("/me", async (
             HttpContext http,
-            ExcluirContaDTO dto,
+            [FromBody] ExcluirContaDTO dto,
             UsuarioRepository repo,
             UsuarioService service) =>
         {
