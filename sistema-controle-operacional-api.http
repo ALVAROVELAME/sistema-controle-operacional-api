@@ -1,6 +1,52 @@
-@sistema_controle_operacional_api_HostAddress = http://localhost:5032
+@sistema_controle_operacional_api_HostAddress = http://localhost:8080
 
-GET {{sistema_controle_operacional_api_HostAddress}}/weatherforecast/
+### Health check (publico)
+GET {{sistema_controle_operacional_api_HostAddress}}/
 Accept: application/json
 
-###
+### Cadastro - inicia fluxo (publico)
+POST {{sistema_controle_operacional_api_HostAddress}}/api/usuarios
+Content-Type: application/json
+
+{
+  "nome": "Joao da Silva",
+  "email": "joao@example.com",
+  "senha": "senhaSegura123"
+}
+
+### Login (publico) - so funciona apos confirmar o e-mail
+POST {{sistema_controle_operacional_api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao@example.com",
+  "senha": "senhaSegura123"
+}
+
+### Confirmar e-mail (publico)
+GET {{sistema_controle_operacional_api_HostAddress}}/api/auth/confirmar?token=COLE_O_TOKEN_AQUI
+
+### Me - usuario autenticado (protegido)
+GET {{sistema_controle_operacional_api_HostAddress}}/api/auth/me
+Authorization: Bearer COLE_O_TOKEN_AQUI
+
+### Excluir conta (protegido)
+DELETE {{sistema_controle_operacional_api_HostAddress}}/api/usuarios/me
+Authorization: Bearer COLE_O_TOKEN_AQUI
+Content-Type: application/json
+
+{
+  "senha": "senhaSegura123"
+}
+
+### Listar clientes (protegido)
+GET {{sistema_controle_operacional_api_HostAddress}}/clientes
+Authorization: Bearer COLE_O_TOKEN_AQUI
+
+### Criar cliente (publico)
+POST {{sistema_controle_operacional_api_HostAddress}}/clientes
+Content-Type: application/json
+
+{
+  "nome": "Cliente Teste"
+}
