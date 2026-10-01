@@ -99,6 +99,7 @@ builder.Services.AddCors(options =>
 // 5. EXCEPTION HANDLER GLOBAL
 // ============================================================
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // ============================================================
 // 6. SWAGGER com Bearer (sempre ativo, igual ao projeto Java)
