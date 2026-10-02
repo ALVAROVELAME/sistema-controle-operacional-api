@@ -77,10 +77,8 @@ builder.Services.AddAuthorization();
 // ============================================================
 // 4. CORS
 // ============================================================
-// Le a URL do frontend de producao via variavel de ambiente.
-// Fallback: URL do Vercel do CtOperacional.
 var frontendUrl = Environment.GetEnvironmentVariable("APP_FRONTEND_URL")
-    ?? "https://ctoperacional.vercel.app";
+    ?? "http://localhost:5173";
 
 builder.Services.AddCors(options =>
 {
@@ -88,12 +86,8 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
-                // Desenvolvimento local
                 "http://localhost:5173",
                 "http://localhost:3000",
-                // Producao (Vercel)
-                "https://ctoperacional.vercel.app",
-                // URL vinda da env (pode ser um dominio customizado no futuro)
                 frontendUrl)
             .AllowAnyHeader()
             .AllowAnyMethod()
