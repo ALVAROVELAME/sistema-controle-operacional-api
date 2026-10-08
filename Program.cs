@@ -40,7 +40,6 @@ if (isDesignTime)
 }
 else
 {
-    // Tenta DB_CONNECTION_STRING primeiro; se não existir, monta das partes
     connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
 
     if (string.IsNullOrWhiteSpace(connectionString))
@@ -59,7 +58,6 @@ else
     }
 }
 
-// A partir daqui a connection string é garantidamente não-nula.
 var finalConnectionString = connectionString!;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -199,7 +197,11 @@ if (!isDesignTime)
 // ------------------------------------------------------------
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
+// Swagger habilitado em Development OU quando SWAGGER_ENABLED=true
+var swaggerEnabled = app.Environment.IsDevelopment()
+    || Environment.GetEnvironmentVariable("SWAGGER_ENABLED") == "true";
+
+if (swaggerEnabled)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
