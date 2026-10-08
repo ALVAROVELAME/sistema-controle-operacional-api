@@ -4,7 +4,7 @@
 GET {{sistema_controle_operacional_api_HostAddress}}/
 Accept: application/json
 
-### Cadastro - inicia fluxo (publico)
+### Cadastro (publico)
 POST {{sistema_controle_operacional_api_HostAddress}}/api/usuarios
 Content-Type: application/json
 
@@ -14,7 +14,7 @@ Content-Type: application/json
   "senha": "senhaSegura123"
 }
 
-### Login (publico) - so funciona apos confirmar o e-mail
+### Login (publico)
 POST {{sistema_controle_operacional_api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
@@ -26,12 +26,12 @@ Content-Type: application/json
 ### Confirmar e-mail (publico)
 GET {{sistema_controle_operacional_api_HostAddress}}/api/auth/confirmar?token=COLE_O_TOKEN_AQUI
 
-### Me - usuario autenticado (protegido)
+### Me (protegido)
 GET {{sistema_controle_operacional_api_HostAddress}}/api/auth/me
 Authorization: Bearer COLE_O_TOKEN_AQUI
 
 ### Excluir conta (protegido)
-DELETE {{sistema_controle_operacional_api_HostAddress}}/api/usuarios/me
+POST {{sistema_controle_operacional_api_HostAddress}}/api/usuarios/me/excluir
 Authorization: Bearer COLE_O_TOKEN_AQUI
 Content-Type: application/json
 
@@ -39,14 +39,41 @@ Content-Type: application/json
   "senha": "senhaSegura123"
 }
 
-### Listar clientes (protegido)
-GET {{sistema_controle_operacional_api_HostAddress}}/clientes
+### Listar tarefas
+GET {{sistema_controle_operacional_api_HostAddress}}/api/tarefas
 Authorization: Bearer COLE_O_TOKEN_AQUI
 
-### Criar cliente (publico)
-POST {{sistema_controle_operacional_api_HostAddress}}/clientes
+### Criar tarefa
+POST {{sistema_controle_operacional_api_HostAddress}}/api/tarefas
+Authorization: Bearer COLE_O_TOKEN_AQUI
 Content-Type: application/json
 
 {
-  "nome": "Cliente Teste"
+  "titulo": "Tarefa teste",
+  "descricao": "desc",
+  "prioridade": "media",
+  "status": "afazer",
+  "pomodorosPlanejados": 3
+}
+
+### Registrar pomodoro (incrementa +1 no servidor)
+POST {{sistema_controle_operacional_api_HostAddress}}/api/tarefas/1/pomodoros
+Authorization: Bearer COLE_O_TOKEN_AQUI
+
+### Evento pomodoro
+POST {{sistema_controle_operacional_api_HostAddress}}/api/pomodoros/eventos
+Authorization: Bearer COLE_O_TOKEN_AQUI
+Content-Type: application/json
+
+{
+  "tipo": "focoCompletado",
+  "modo": "foco",
+  "ciclo": 1,
+  "minutosPlanejados": 25,
+  "minutosReais": 25,
+  "segundosReais": 1500,
+  "ocorridoEm": "2025-01-01T12:00:00Z",
+  "tarefaId": "1",
+  "tarefaTitulo": "Tarefa teste",
+  "statusTarefa": "emProgresso"
 }

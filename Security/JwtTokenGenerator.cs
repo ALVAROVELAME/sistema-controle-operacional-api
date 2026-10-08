@@ -6,11 +6,6 @@ using SistemaControleOperacionalApi.Config;
 
 namespace SistemaControleOperacionalApi.Security;
 
-/// <summary>
-/// Responsavel apenas pela GERACAO do token.
-/// A VALIDACAO e delegada ao middleware nativo do ASP.NET Core
-/// (AddJwtBearer), equivalente ao JwtAuthenticationFilter do Java.
-/// </summary>
 public sealed class JwtTokenGenerator
 {
     private readonly JwtSettings _settings;
@@ -20,11 +15,8 @@ public sealed class JwtTokenGenerator
     {
         _settings = settings;
 
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(settings.Secret));
-
-        _credentials = new SigningCredentials(
-            key, SecurityAlgorithms.HmacSha256);
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Secret));
+        _credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
     }
 
     public string GerarToken(long usuarioId, string email, string nome)
@@ -35,16 +27,16 @@ public sealed class JwtTokenGenerator
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, email),
-            new(JwtRegisteredClaimNames.Iss, _settings.Issuer),
             new(JwtRegisteredClaimNames.Iat,
                 new DateTimeOffset(agora).ToUnixTimeSeconds().ToString(),
                 ClaimValueTypes.Integer64),
             new("id", usuarioId.ToString()),
-            new("nome", nome)
+            new("nome", nome),
         };
 
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,
+            audience: _settings.Audience,   // 👈 FIX
             claims: claims,
             notBefore: agora,
             expires: expiraEm,

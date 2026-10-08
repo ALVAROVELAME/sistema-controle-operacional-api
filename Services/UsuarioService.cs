@@ -1,13 +1,10 @@
-using SistemaControleOperacionalApi.DTOs;
+using SistemaControleOperacionalApi.DTOs.Usuarios;
 using SistemaControleOperacionalApi.Exceptions;
 using SistemaControleOperacionalApi.Models;
 using SistemaControleOperacionalApi.Repositories;
 
 namespace SistemaControleOperacionalApi.Services;
 
-/// <summary>
-/// Espelha UsuarioService (Java).
-/// </summary>
 public sealed class UsuarioService
 {
     private readonly UsuarioRepository _usuarioRepo;
@@ -41,25 +38,18 @@ public sealed class UsuarioService
         var cadastro = new CadastroPendente(dto.Nome, dto.Email, senhaHash, token);
         var salvo = await _cadastroRepo.AddAsync(cadastro);
 
-        await _email.EnviarEmailConfirmacaoAsync(
-            salvo.Email, salvo.Nome, salvo.TokenConfirmacao);
-
+        await _email.EnviarEmailConfirmacaoAsync(salvo.Email, salvo.Nome, salvo.TokenConfirmacao);
         return salvo;
     }
 
     public async Task ExcluirContaAsync(Usuario usuario, string senha)
     {
-        // Revalida a senha (mesma protecao do Java)
         if (!_hasher.Verify(senha, usuario.SenhaHash))
-            throw new UnauthorizedAccessException(
-                "Senha incorreta. Exclusao cancelada.");
+            throw new UnauthorizedAccessException("Senha incorreta. Exclusao cancelada.");
 
-        // Remove cadastros pendentes com o mesmo email (se houver)
         var pendente = await _cadastroRepo.FindByEmailAsync(usuario.Email);
-        if (pendente is not null)
-            await _cadastroRepo.DeleteAsync(pendente);
+        if (pendente is not null) await _cadastroRepo.DeleteAsync(pendente);
 
-        // Remove o usuario
         await _usuarioRepo.DeleteAsync(usuario);
     }
 }

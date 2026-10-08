@@ -1,36 +1,55 @@
-using SistemaControleOperacionalApi.DTOs;
-using SistemaControleOperacionalApi.Exceptions;
-using SistemaControleOperacionalApi.Models;
+using SistemaControleOperacionalApi.DTOs.Auth;
+using SistemaControleOperacionalApi.DTOs.Usuarios;
 using SistemaControleOperacionalApi.Repositories;
+using SistemaControleOperacionalApi.Security;
 
 namespace SistemaControleOperacionalApi.Services;
 
-/// <summary>
-/// Espelha AuthService (Java).
-/// </summary>
 public sealed class AuthService
 {
     private readonly UsuarioRepository _usuarioRepo;
     private readonly PasswordHasher _hasher;
+    private readonly JwtTokenGenerator _jwt;
 
-    public AuthService(UsuarioRepository usuarioRepo, PasswordHasher hasher)
+    public AuthService(UsuarioRepository usuarioRepo, PasswordHasher hasher, JwtTokenGenerator jwt)
     {
         _usuarioRepo = usuarioRepo;
         _hasher = hasher;
+        _jwt = jwt;
     }
 
-    public async Task<Usuario> AutenticarAsync(LoginDTO dto)
+    public async Task<LoginResponseDTO> LoginAsync(LoginRequestDTO dto)
     {
-        var usuario = await _usuarioRepo.FindByEmailAsync(dto.Email)
-            ?? throw new UnauthorizedAccessException("E-mail ou senha invalidos.");
+        var usuario = await _usuarioRepo.FindByEmailAsync(dto.Email);
+
+        if (usuario is null || !_hasher.Verify(dto.Senha, usuario.SenhaHash))
+            return new LoginResponseDTO { Sucesso = false, Mensagem = "E-mail ou senha invalidos." };
 
         if (!usuario.Ativo)
-            throw new ForbiddenException(
-                "Conta ainda nao foi confirmada. Verifique seu e-mail.");
+            return new LoginResponseDTO { Sucesso = false, Mensagem = "Conta ainda nao foi confirmada." };
 
-        if (!_hasher.Verify(dto.Senha, usuario.SenhaHash))
-            throw new UnauthorizedAccessException("E-mail ou senha invalidos.");
+        var token = _jwt.GerarToken(usuario.Id, usuario.Email, usuario.Nome);
 
-        return usuario;
+        return new LoginResponseDTO
+        {
+            Sucesso = true,
+            Mensagem = "Login realizado com sucesso",
+            Token = token,
+            Usuario = ToDto(usuario),
+        };
     }
+
+    public async Task<UsuarioResponseDTO?> ObterPorIdAsync(long id)
+    {
+        var u = await _usuarioRepo.FindByIdAsync(id);
+        return u is null ? null : ToDto(u);
+    }
+
+    private static UsuarioResponseDTO ToDto(Models.Usuario u) => new()
+    {
+        Id = u.Id,
+        Nome = u.Nome,
+        Email = u.Email,
+        Ativo = u.Ativo,
+    };
 }

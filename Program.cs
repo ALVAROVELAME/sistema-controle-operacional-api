@@ -1,129 +1,171 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SistemaControleOperacionalApi.Config;
 using SistemaControleOperacionalApi.Data;
-using SistemaControleOperacionalApi.Endpoints;
 using SistemaControleOperacionalApi.Exceptions;
-using SistemaControleOperacionalApi.Extensions;
-using SistemaControleOperacionalApi.Models;
 using SistemaControleOperacionalApi.Repositories;
 using SistemaControleOperacionalApi.Security;
 using SistemaControleOperacionalApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ============================================================
-// 1. CONFIGURACAO TIPADA
-// ============================================================
-var jwtSettings = JwtSettings.FromEnvironment();
-builder.Services.AddSingleton(jwtSettings);
-builder.Services.AddSingleton<JwtTokenGenerator>();
-builder.Services.AddSingleton<PasswordHasher>();
-builder.Services.AddSingleton<EmailService>();
+// Detecta se está rodando via 'dotnet ef' (design-time)
+var isDesignTime = AppDomain.CurrentDomain.GetAssemblies()
+    .Any(a => a.FullName?.Contains("EntityFrameworkCore.Design") == true);
 
-// Repositorios + Services (Scoped = uma instancia por request)
-builder.Services.AddScoped<UsuarioRepository>();
-builder.Services.AddScoped<CadastroPendenteRepository>();
-builder.Services.AddScoped<UsuarioService>();
-builder.Services.AddScoped<EmailConfirmationService>();
-builder.Services.AddScoped<AuthService>();
+// ------------------------------------------------------------
+// 1. Controllers + JSON
+// ------------------------------------------------------------
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
 
-// ============================================================
-// 2. BANCO DE DADOS
-// ============================================================
-var connectionString =
-    $"Server={Environment.GetEnvironmentVariable("DB_SERVER")};" +
-    $"Port={Environment.GetEnvironmentVariable("DB_PORT")};" +
-    $"Database={Environment.GetEnvironmentVariable("DB_DATABASE")};" +
-    $"User={Environment.GetEnvironmentVariable("DB_USER")};" +
-    $"Password={Environment.GetEnvironmentVariable("DB_PASSWORD")};";
+// ------------------------------------------------------------
+// 2. EF Core + MariaDB/MySQL (lê variáveis individuais do .env)
+// ------------------------------------------------------------
+string? connectionString;
+
+if (isDesignTime)
+{
+    connectionString = "Server=localhost;Port=3306;Database=design_time;User=root;Password=root;";
+}
+else
+{
+    // Tenta DB_CONNECTION_STRING primeiro; se não existir, monta das partes
+    connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        var server = Environment.GetEnvironmentVariable("DB_SERVER")
+            ?? throw new InvalidOperationException("DB_SERVER nao configurado no ambiente.");
+        var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "3306";
+        var database = Environment.GetEnvironmentVariable("DB_DATABASE")
+            ?? throw new InvalidOperationException("DB_DATABASE nao configurado no ambiente.");
+        var user = Environment.GetEnvironmentVariable("DB_USER")
+            ?? throw new InvalidOperationException("DB_USER nao configurado no ambiente.");
+        var password = Environment.GetEnvironmentVariable("DB_PASSWORD")
+            ?? throw new InvalidOperationException("DB_PASSWORD nao configurado no ambiente.");
+
+        connectionString = $"Server={server};Port={port};Database={database};User={user};Password={password};";
+    }
+}
+
+// A partir daqui a connection string é garantidamente não-nula.
+var finalConnectionString = connectionString!;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    );
+    if (isDesignTime)
+        options.UseMySql(finalConnectionString, new MySqlServerVersion(new Version(8, 0, 36)));
+    else
+        options.UseMySql(finalConnectionString, ServerVersion.AutoDetect(finalConnectionString));
 });
 
-// ============================================================
-// 3. AUTENTICACAO JWT
-// ============================================================
+// ------------------------------------------------------------
+// 3. CORS
+// ------------------------------------------------------------
+builder.Services.AddCors(o =>
+{
+    o.AddPolicy("frontend", p => p
+        .WithOrigins(
+            "https://ctoperacional.vercel.app",
+            "http://localhost:5173",
+            "http://localhost:4173")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
+
+// ------------------------------------------------------------
+// 4. JWT (lido do .env)
+// ------------------------------------------------------------
+JwtSettings jwtSettings;
+if (isDesignTime)
+{
+    jwtSettings = new JwtSettings
+    {
+        Secret = new string('x', 64),
+        Expiration = 86_400_000,
+        Issuer = "sistema-controle-operacional-api",
+        Audience = "sistema-controle-operacional-api",
+    };
+}
+else
+{
+    jwtSettings = JwtSettings.FromEnvironment();
+}
+
+builder.Services.AddSingleton(jwtSettings);
+builder.Services.AddSingleton<JwtTokenGenerator>();
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    .AddJwtBearer(o =>
     {
-        options.RequireHttpsMetadata = false;
-        options.SaveToken = false;
-
-        options.TokenValidationParameters = new TokenValidationParameters
+        o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = jwtSettings.Issuer,
-            ValidateAudience = false,
+            ValidateAudience = true,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero,
             ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings.Secret))
+                Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+            ClockSkew = TimeSpan.Zero,
         };
     });
 
 builder.Services.AddAuthorization();
 
-// ============================================================
-// 4. CORS
-// ============================================================
-var frontendUrl = Environment.GetEnvironmentVariable("APP_FRONTEND_URL")
-    ?? "http://localhost:5173";
-
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy
-            .WithOrigins(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                frontendUrl)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
-
-// ============================================================
-// 5. EXCEPTION HANDLER GLOBAL
-// ============================================================
+// ------------------------------------------------------------
+// 5. Exception handler global
+// ------------------------------------------------------------
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// ============================================================
-// 6. SWAGGER com Bearer (sempre ativo, igual ao projeto Java)
-// ============================================================
+// ------------------------------------------------------------
+// 6. DI — Repositórios e Serviços
+// ------------------------------------------------------------
+builder.Services.AddScoped<UsuarioRepository>();
+builder.Services.AddScoped<CadastroPendenteRepository>();
+builder.Services.AddScoped<TarefaRepository>();
+builder.Services.AddScoped<PomodoroEventoRepository>();
+
+builder.Services.AddSingleton<PasswordHasher>();
+builder.Services.AddSingleton<EmailService>();
+
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddScoped<EmailConfirmationService>();
+builder.Services.AddScoped<TarefaService>();
+
+// ------------------------------------------------------------
+// 7. Swagger
+// ------------------------------------------------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "CtOperacional API", Version = "v1" });
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Title = "Sistema Controle Operacional API",
-        Version = "v1"
+        Description = "JWT Authorization. Ex: \"Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
     });
 
-    var scheme = new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Informe o token JWT: Bearer {token}"
-    };
-
-    c.AddSecurityDefinition("Bearer", scheme);
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -132,67 +174,40 @@ builder.Services.AddSwaggerGen(c =>
                 Reference = new OpenApiReference
                 {
                     Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                    Id = "Bearer",
+                },
             },
             Array.Empty<string>()
-        }
+        },
     });
 });
 
 var app = builder.Build();
 
-// ============================================================
-// 7. PIPELINE
-// ============================================================
-app.UseExceptionHandler();
-app.UseCors();
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.UseSwagger();
-app.UseSwaggerUI();
-
-// Cria banco/tabelas automaticamente
-using (var scope = app.Services.CreateScope())
+// ------------------------------------------------------------
+// 8. Migrations só rodam em runtime (nunca em design-time)
+// ------------------------------------------------------------
+if (!isDesignTime)
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
-// ============================================================
-// 8. ENDPOINTS
-// ============================================================
+// ------------------------------------------------------------
+// 9. Pipeline
+// ------------------------------------------------------------
+app.UseExceptionHandler();
 
-// Health check - publico
-app.MapGet("/", () => Results.Ok(new
+if (app.Environment.IsDevelopment())
 {
-    status = "API Sistema de Controle Operacional funcionando"
-}))
-.AllowAnonymous();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-// Autenticacao
-app.MapAuthEndpoints();
-app.MapUsuarioEndpoints();
+app.UseCors("frontend");
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
 
-// ---------- Endpoint publico de exemplo ----------
-app.MapPost("/clientes", async (Cliente cliente, AppDbContext db) =>
-{
-    db.Clientes.Add(cliente);
-    await db.SaveChangesAsync();
-    return Results.Ok(cliente);
-})
-.AllowAnonymous();
-
-// ---------- Endpoint protegido de exemplo ----------
-app.MapGet("/clientes", async (AppDbContext db) =>
-{
-    return await db.Clientes.ToListAsync();
-})
-.RequireAuthorization();
-
-// ============================================================
-// 9. START
-// ============================================================
-var porta = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Run($"http://0.0.0.0:{porta}");
+app.Run();

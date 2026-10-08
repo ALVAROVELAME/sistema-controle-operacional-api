@@ -1,13 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Diagnostics;
-using SistemaControleOperacionalApi.DTOs;
+using SistemaControleOperacionalApi.DTOs.Comum;
 
 namespace SistemaControleOperacionalApi.Exceptions;
 
-/// <summary>
-/// Espelha o @RestControllerAdvice GlobalExceptionHandler (Java).
-/// Utiliza a interface nativa IExceptionHandler do .NET 8.
-/// </summary>
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
@@ -33,7 +29,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         httpContext.Response.ContentType = "application/json; charset=utf-8";
 
         await httpContext.Response.WriteAsJsonAsync(
-            new MensagemRespostaDTO(false, mensagem),
+            new MensagemResponseDTO(mensagem, sucesso: false),
             cancellationToken);
 
         return true;
@@ -41,11 +37,11 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
 
     private static (int Status, string Mensagem) MapException(Exception ex) => ex switch
     {
-        AppException app => (app.StatusCode, app.Message),
-        ValidationException v => (StatusCodes.Status400BadRequest, v.Message),
-        ArgumentException a => (StatusCodes.Status400BadRequest, a.Message),
+        AppException app              => (app.StatusCode, app.Message),
+        ValidationException v         => (StatusCodes.Status400BadRequest, v.Message),
+        ArgumentException a           => (StatusCodes.Status400BadRequest, a.Message),
         UnauthorizedAccessException u => (StatusCodes.Status401Unauthorized, u.Message),
-        KeyNotFoundException k => (StatusCodes.Status404NotFound, k.Message),
-        _ => (StatusCodes.Status500InternalServerError, "Erro interno do servidor.")
+        KeyNotFoundException k        => (StatusCodes.Status404NotFound, k.Message),
+        _                             => (StatusCodes.Status500InternalServerError, "Erro interno do servidor.")
     };
 }
