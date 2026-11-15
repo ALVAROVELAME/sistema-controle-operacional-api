@@ -9,7 +9,7 @@ namespace SistemaControleOperacionalApi.Services;
 /// Espelha EmailService (Spring Mail) usando MailKit.
 /// Envia e-mail de confirmacao com link para o FRONTEND.
 /// </summary>
-public sealed class EmailService
+public sealed class EmailService : IEmailService
 {
     private readonly string _host;
     private readonly int _port;

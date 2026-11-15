@@ -7,7 +7,12 @@ on:
 
 jobs:
 
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   deploy:
+
+    needs: tests
 
     runs-on: self-hosted
 

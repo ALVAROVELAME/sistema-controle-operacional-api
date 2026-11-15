@@ -45,18 +45,18 @@ if (isDesignTime)
 }
 else
 {
-    connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+    connectionString = builder.Configuration["DB_CONNECTION_STRING"];
 
     if (string.IsNullOrWhiteSpace(connectionString))
     {
-        var server = Environment.GetEnvironmentVariable("DB_SERVER")
+        var server = builder.Configuration["DB_SERVER"]
             ?? throw new InvalidOperationException("DB_SERVER nao configurado no ambiente.");
-        var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "3306";
-        var database = Environment.GetEnvironmentVariable("DB_DATABASE")
+        var port = builder.Configuration["DB_PORT"] ?? "3306";
+        var database = builder.Configuration["DB_DATABASE"]
             ?? throw new InvalidOperationException("DB_DATABASE nao configurado no ambiente.");
-        var user = Environment.GetEnvironmentVariable("DB_USER")
+        var user = builder.Configuration["DB_USER"]
             ?? throw new InvalidOperationException("DB_USER nao configurado no ambiente.");
-        var password = Environment.GetEnvironmentVariable("DB_PASSWORD")
+        var password = builder.Configuration["DB_PASSWORD"]
             ?? throw new InvalidOperationException("DB_PASSWORD nao configurado no ambiente.");
 
         connectionString = $"Server={server};Port={port};Database={database};User={user};Password={password};";
@@ -104,7 +104,7 @@ if (isDesignTime)
 }
 else
 {
-    jwtSettings = JwtSettings.FromEnvironment();
+    jwtSettings = JwtSettings.FromConfiguration(builder.Configuration);
 }
 
 builder.Services.AddSingleton(jwtSettings);
@@ -145,7 +145,7 @@ builder.Services.AddScoped<TarefaRepository>();
 builder.Services.AddScoped<PomodoroEventoRepository>();
 
 builder.Services.AddSingleton<PasswordHasher>();
-builder.Services.AddSingleton<EmailService>();
+builder.Services.AddSingleton<IEmailService, EmailService>();
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UsuarioService>();
@@ -190,7 +190,7 @@ var app = builder.Build();
 // ------------------------------------------------------------
 // 8. Migrations só rodam em runtime (nunca em design-time)
 // ------------------------------------------------------------
-if (!isDesignTime)
+if (!isDesignTime && builder.Configuration.GetValue("Database:ApplyMigrations", true))
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -204,7 +204,7 @@ app.UseExceptionHandler();
 
 // Swagger habilitado em Development OU quando SWAGGER_ENABLED=true
 var swaggerEnabled = app.Environment.IsDevelopment()
-    || Environment.GetEnvironmentVariable("SWAGGER_ENABLED") == "true";
+    || builder.Configuration["SWAGGER_ENABLED"] == "true";
 
 if (swaggerEnabled)
 {
@@ -218,3 +218,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+// Ponto de entrada acessível ao WebApplicationFactory.
+public partial class Program { }

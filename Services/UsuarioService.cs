@@ -10,13 +10,13 @@ public sealed class UsuarioService
     private readonly UsuarioRepository _usuarioRepo;
     private readonly CadastroPendenteRepository _cadastroRepo;
     private readonly PasswordHasher _hasher;
-    private readonly EmailService _email;
+    private readonly IEmailService _email;
 
     public UsuarioService(
         UsuarioRepository usuarioRepo,
         CadastroPendenteRepository cadastroRepo,
         PasswordHasher hasher,
-        EmailService email)
+        IEmailService email)
     {
         _usuarioRepo = usuarioRepo;
         _cadastroRepo = cadastroRepo;

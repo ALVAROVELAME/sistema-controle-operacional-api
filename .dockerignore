@@ -27,3 +27,9 @@ obj/
 
 # Documentação
 README.md
+
+tests/
+TestResults/
+.artifacts/
+coverage/
+.github/
