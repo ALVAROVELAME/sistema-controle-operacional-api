@@ -9,6 +9,8 @@ API REST em **ASP.NET Core 8** que dá suporte ao cadastro de usuários, ao quad
 [![.NET](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![MySQL](https://img.shields.io/badge/banco-MySQL%20%2F%20MariaDB-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Docker](https://img.shields.io/badge/deploy-Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Nginx](https://img.shields.io/badge/proxy-Nginx-009639?logo=nginx&logoColor=white)](https://nginx.org/)
+[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
 [![Testes](https://img.shields.io/badge/testes-xUnit-512BD4)](tests/README.md)
 
 [🌐 Aplicação web](https://ctoperacional.vercel.app) · [📚 Guia de testes](tests/README.md) · [📋 Análise técnica](docs/ANALISE.md)
@@ -21,7 +23,9 @@ API REST em **ASP.NET Core 8** que dá suporte ao cadastro de usuários, ao quad
 
 A API do **CtOperacional** oferece os recursos de autenticação e persistência usados pelo frontend de controle operacional. As tarefas são associadas ao usuário autenticado e podem acompanhar prioridade, prazo, status e contador de Pomodoros.
 
-### ✨ Funcionalidades
+---
+
+## ✨ Funcionalidades
 
 - 🔐 Cadastro com confirmação por e-mail, login JWT e exclusão de conta com senha.
 - 📋 Criação, listagem, atualização, importação e exclusão de tarefas.
@@ -45,7 +49,9 @@ A API do **CtOperacional** oferece os recursos de autenticação e persistência
 - [Banco e migrations](#banco-e-migrations)
 - [Limitações e próximos passos](#limitações-e-próximos-passos)
 
-## Tecnologias e arquitetura
+---
+
+## 🛠 Tecnologias e arquitetura
 
 | Componente | Tecnologia / responsabilidade |
 | --- | --- |
@@ -58,6 +64,9 @@ A API do **CtOperacional** oferece os recursos de autenticação e persistência
 | Testes | xUnit, Microsoft.AspNetCore.Mvc.Testing, HttpClient, FluentAssertions 7.2 |
 | Persistência de teste | SQLite em memória, isolado por caso |
 | Cobertura | Coverlet, formato Cobertura |
+| Infraestrutura | VM compartilhada, Nginx, Docker Compose e GitHub Actions |
+
+### 📁 Estrutura do projeto
 
 ```text
 Controllers/       Rotas, autorização e respostas HTTP
@@ -83,7 +92,9 @@ SistemaControleOperacional.sln
 
 O fluxo principal é `HTTP → Controller → Service → Repository → AppDbContext`. O controller de Pomodoro usa diretamente o repositório. `Cliente` existe no modelo, mas não possui endpoints.
 
-## Executar localmente
+---
+
+## 🚀 Executar localmente
 
 Pré-requisitos: SDK .NET 8 (inclui runtime ASP.NET Core 8), MySQL/MariaDB acessível e credenciais SMTP para o cadastro. Para executar somente os testes, banco externo e SMTP não são necessários.
 
@@ -110,7 +121,9 @@ dotnet run --project sistema-controle-operacional-api.csproj
 
 Esse carregador aceita o formato simples de `.env.example`, sem aspas nem comentários no fim dos valores. O perfil local usa `http://localhost:8080`; não há rota de health check HTTP na raiz. Swagger: `http://localhost:8080/swagger` em Development. As migrations são aplicadas na inicialização, portanto o banco deve estar disponível.
 
-## Configuração
+---
+
+## ⚙️ Configuração
 
 | Variável | Uso / padrão |
 | --- | --- |
@@ -134,7 +147,9 @@ Não versione `.env`. O arquivo `.env.example` contém somente exemplos. Os test
 
 CORS permite atualmente `https://ctoperacional.vercel.app`, `http://localhost:5173` e `http://localhost:4173`, com credenciais. Essas origens estão em `Program.cs`.
 
-## Docker
+---
+
+## 🐳 Docker
 
 ```powershell
 docker compose up -d --build
@@ -146,30 +161,33 @@ O Compose carrega `.env` e publica `127.0.0.1:3001 → 8080`. Ele contém **some
 
 O Dockerfile usa build em múltiplos estágios e publica explicitamente o projeto da API. Testes, resultados e ferramentas locais ficam fora do contexto Docker.
 
-## Infraestrutura e deploy
+---
 
-Segundo o contexto informado, esta API compartilha a **mesma máquina virtual** com a outra API. O repositório documenta a configuração deste serviço; detalhes da outra API e do acesso externo da VM precisam ser confirmados no servidor.
+## 🚢 Infraestrutura e deploy
+
+Esta API está **em produção**, na mesma máquina virtual e infraestrutura compartilhada com a outra API. O código é enviado pelo GitHub e o GitHub Actions executa o deploy na VM, onde a aplicação é construída e executada em um container Docker. Os detalhes abaixo descrevem a configuração deste serviço no repositório.
 
 ```text
-Frontend CtOperacional (Vercel)
-          │ HTTPS — endereço configurado no frontend
-          ▼
-  Acesso externo da VM (configuração a confirmar)
-          │
-          ▼
-  127.0.0.1:3001 → container desta API :8080
-          │
-          ├── MySQL/MariaDB acessível à API
-          └── SMTP para confirmação de cadastro
+Deploy: push para main → GitHub Actions → runner na VM → Docker Compose
+
+Requisições:
+Frontend CtOperacional → Nginx na VM → 127.0.0.1:3001
+                                            │
+                                            ▼
+                                  Container da API :8080
+                                      │           │
+                                      ▼           ▼
+                               MySQL/MariaDB     SMTP
 ```
 
-O README de referência informa `https://controle-operacional-api.duckdns.org` como endereço configurado no frontend. Confirme no servidor e na configuração atual do frontend se esse domínio está apontado para **esta versão** da API. O repositório não contém a configuração do proxy reverso, DNS ou certificado TLS; esses componentes não foram verificados.
+O README de referência informa `https://controle-operacional-api.duckdns.org` como endereço configurado no frontend. O Nginx faz parte da infraestrutura compartilhada da VM. Seus arquivos de configuração, assim como as configurações de DNS e TLS, não estão neste repositório; o vínculo desse endereço com este container não foi verificado a partir do código.
 
 ### Serviço nesta VM
 
 | Item | Configuração neste repositório |
 | --- | --- |
 | Diretório de deploy | `/srv/apps/sistema-controle-operacional-api` |
+| Proxy reverso | Nginx na infraestrutura compartilhada da VM |
 | Orquestração | Docker Compose; o arquivo define somente esta API |
 | Container | `sistema_controle_operacional_api` |
 | Porta | `127.0.0.1:3001` na VM para `8080` no container |
@@ -179,7 +197,7 @@ O README de referência informa `https://controle-operacional-api.duckdns.org` c
 | Logs | Driver `json-file`, até 3 arquivos de 10 MB |
 | Healthcheck | Verificação TCP configurada; compatibilidade com o shell da imagem ainda precisa ser validada |
 
-A porta está vinculada ao loopback da VM. Para acesso externo, é necessário um encaminhamento configurado na própria VM ou outra solução de rede; o Compose não configura esse encaminhamento. Como a máquina é compartilhada, confira portas, nomes de containers, recursos e configuração do serviço existente antes de alterar a implantação.
+A porta está vinculada ao loopback da VM. O Nginx faz parte do acesso externo na infraestrutura compartilhada; o Compose deste projeto não configura o Nginx. Como a máquina é compartilhada, confira portas, nomes de containers, recursos e configuração do serviço existente antes de alterar a implantação.
 
 ### Fluxo de publicação
 
@@ -197,7 +215,9 @@ O arquivo `.env` é necessário no servidor e deve conter as credenciais do banc
 
 ---
 
-## Endpoints
+---
+
+## 🌐 Endpoints
 
 Rotas protegidas exigem `Authorization: Bearer <token>`. O Swagger também permite informar esse cabeçalho pelo botão **Authorize**; como o esquema é do tipo API key, informe `Bearer ` seguido do token.
 
@@ -230,7 +250,9 @@ JSON usa propriedades `camelCase`, enums textuais em `snake_case` e omite propri
 
 Validações de DTO retornam `400` com `ValidationProblemDetails` (`errors`). Exceções de negócio usam `{ "sucesso": false, "mensagem": "..." }`. Falhas de autenticação do middleware e alguns `404` não usam esse envelope. Erros inesperados retornam mensagem genérica com status `500`.
 
-## Exemplos
+---
+
+## 📝 Exemplos
 
 Cadastro (`POST /api/usuarios`):
 
@@ -278,7 +300,9 @@ Evento Pomodoro:
 
 Eventos aceitam ciclos de 1–8, minutos de 0–120 e segundos de 0–7200. Registrar evento não incrementa automaticamente o contador da tarefa. O `tarefaId` é opcional: se não puder ser convertido para número, é salvo como nulo; a API não verifica a existência ou a propriedade da tarefa informada.
 
-## Testes automatizados
+---
+
+## 🧪 Testes automatizados
 
 ```powershell
 # Toda a suíte
@@ -304,13 +328,17 @@ O SQLite é relacional e aplica índices únicos, mas **não comprova compatibil
 
 FluentAssertions está fixado em 7.2, linha anterior à mudança de licença comercial da versão 8. Referências: [testes de integração no ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0) e [licenciamento do FluentAssertions](https://fluentassertions.com/releases/).
 
-## Integração contínua
+---
+
+## 🔄 Integração contínua
 
 `tests.yml` restaura, compila em Release, executa testes e publica TRX/cobertura como artefato em pushes para `main` e pull requests. Não exige secrets, MySQL ou SMTP.
 
-`deploy.yml` chama o workflow de testes e só inicia o job de deploy após sucesso. O deploy existente utiliza runner próprio, Docker e o diretório `/srv/apps/sistema-controle-operacional-api`; o `.env` precisa existir nesse servidor. Como os workflows também rodam separadamente em `main`, haverá uma execução de teste independente e outra vinculada ao deploy.
+`deploy.yml` chama o workflow de testes e só inicia o job de deploy após sucesso. O deploy de produção utiliza runner próprio, Docker e o diretório `/srv/apps/sistema-controle-operacional-api`; o `.env` precisa existir nesse servidor. Como os workflows também rodam separadamente em `main`, haverá uma execução de teste independente e outra vinculada ao deploy.
 
-## Banco e migrations
+---
+
+## 🗄️ Banco e migrations
 
 O projeto contém a migration `InitialCreate`. Na execução normal, `Database.Migrate()` aplica migrations pendentes, salvo quando `Database__ApplyMigrations=false`. O usuário de banco precisa das permissões necessárias para isso. Em testes usamos `EnsureCreated()` somente no SQLite isolado.
 
@@ -323,7 +351,9 @@ dotnet ef database update --project sistema-controle-operacional-api.csproj --co
 
 A inicialização de design-time usa conexão fictícia `design_time` e MySQL 8.0.36 para gerar o modelo sem autodetecção. Para aplicar migrations pela CLI, informe explicitamente a conexão correta. Não coloque credenciais reais em scripts versionados.
 
-## Limitações e próximos passos
+---
+
+## 🗺️ Limitações e próximos passos
 
 O envio SMTP ocorre depois de salvar o cadastro pendente: uma falha de envio pode deixar esse cadastro no banco. A exclusão da conta não revoga imediatamente o JWT nem remove automaticamente tarefas e eventos associados. A análise técnica e os limites da validação estão em [docs/ANALISE.md](docs/ANALISE.md). A suíte cobre os fluxos descritos, mas não substitui testes com MySQL real, entrega SMTP, infraestrutura Docker, carga ou segurança especializada.
 
