@@ -29,6 +29,27 @@ public class AuthController : ControllerBase
         return resposta.Sucesso ? Ok(resposta) : Unauthorized(resposta);
     }
 
+    [HttpPost("recuperar-senha")]
+    [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("recuperacao")]
+    public async Task<ActionResult<MensagemResponseDTO>> RecuperarSenha([FromBody] RecuperarSenhaDTO dto, [FromServices] RecuperacaoSenhaService service)
+    {
+        await service.SolicitarAsync(dto.Email);
+        return Ok(new MensagemResponseDTO("Se houver uma conta com este e-mail, enviaremos as instrucoes."));
+    }
+
+    [HttpPost("redefinir-senha")]
+    [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("recuperacao")]
+    public async Task<ActionResult<MensagemResponseDTO>> RedefinirSenha([FromBody] RedefinirSenhaDTO dto, [FromServices] RecuperacaoSenhaService service)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Senha))
+            return BadRequest(new MensagemResponseDTO("A senha nao pode ficar em branco.", false));
+        if (!await service.RedefinirAsync(dto.Token, dto.Senha))
+            return BadRequest(new MensagemResponseDTO("Link invalido ou expirado. Solicite um novo link.", false));
+        return Ok(new MensagemResponseDTO("Senha redefinida com sucesso."));
+    }
+
     [HttpGet("me")]
     [Authorize]
     public async Task<ActionResult<UsuarioResponseDTO>> Me()

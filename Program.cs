@@ -147,6 +147,8 @@ builder.Services.AddScoped<PomodoroEventoRepository>();
 builder.Services.AddSingleton<PasswordHasher>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
 
+builder.Services.AddRateLimiter(options => { options.RejectionStatusCode = 429; options.AddPolicy("recuperacao", context => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(15), QueueLimit = 0 })); });
+builder.Services.AddScoped<RecuperacaoSenhaService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddScoped<EmailConfirmationService>();
@@ -213,6 +215,7 @@ if (swaggerEnabled)
 }
 
 app.UseCors("frontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

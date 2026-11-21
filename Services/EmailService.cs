@@ -68,6 +68,22 @@ public sealed class EmailService : IEmailService
         await client.DisconnectAsync(true);
     }
 
+    public async Task EnviarEmailRecuperacaoAsync(string email, string nome, string token)
+    {
+        var frontendUrl = Environment.GetEnvironmentVariable("APP_FRONTEND_URL") ?? "http://localhost:5173";
+        var link = $"{frontendUrl.TrimEnd('/')}/redefinir-senha?token={Uri.EscapeDataString(token)}";
+        var mensagem = new MimeMessage();
+        mensagem.From.Add(MailboxAddress.Parse(_from));
+        mensagem.To.Add(MailboxAddress.Parse(email));
+        mensagem.Subject = "Redefinicao de senha - Sistema Controle Operacional";
+        mensagem.Body = new TextPart(TextFormat.Plain) { Text = $"Ola {nome},\n\nPara redefinir sua senha, acesse:\n{link}\n\nO link e valido por 30 minutos e pode ser usado uma vez. Se nao solicitou, ignore este email." };
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_host, _port, SecureSocketOptions.StartTls);
+        await client.AuthenticateAsync(_username, _password);
+        await client.SendAsync(mensagem);
+        await client.DisconnectAsync(true);
+    }
+
     private static string Env(string key) =>
         Environment.GetEnvironmentVariable(key)
         ?? throw new InvalidOperationException(

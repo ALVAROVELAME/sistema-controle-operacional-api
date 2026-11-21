@@ -202,6 +202,12 @@ namespace SistemaControleOperacionalApi.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
 
+                    b.Property<DateTime?>("RecuperacaoExpiraEm")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("RecuperacaoTokenHash")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("SenhaHash")
                         .IsRequired()
                         .HasColumnType("longtext");

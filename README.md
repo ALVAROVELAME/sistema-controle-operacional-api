@@ -27,7 +27,7 @@ A API do **CtOperacional** oferece os recursos de autenticação e persistência
 
 ## ✨ Funcionalidades
 
-- 🔐 Cadastro com confirmação por e-mail, login JWT e exclusão de conta com senha.
+- 🔐 Cadastro com confirmação por e-mail, recuperação de senha, login JWT e exclusão de conta com senha.
 - 📋 Criação, listagem, atualização, importação e exclusão de tarefas.
 - 🍅 Registro de eventos Pomodoro e incremento do contador de uma tarefa.
 - 🧪 Testes unitários e de integração HTTP com banco isolado.
@@ -225,6 +225,8 @@ Rotas protegidas exigem `Authorization: Bearer <token>`. O Swagger também permi
 | --- | --- | --- | --- |
 | POST | `/api/usuarios` | Não | 200, inicia cadastro e envia confirmação |
 | GET | `/api/auth/confirmar?token=...` | Não | 200, ativa conta; 400 para token inválido/expirado |
+| POST | `/api/auth/recuperar-senha` | Não | 200 com resposta genérica; envia link para contas ativas |
+| POST | `/api/auth/redefinir-senha` | Não | 200 ao alterar senha; 400 para token inválido ou expirado |
 | POST | `/api/auth/login` | Não | 200 com JWT; 401 para credenciais/conta inválidas |
 | GET | `/api/auth/me` | Sim | 200 com perfil; 404 se usuário ausente |
 | GET | `/api/usuarios/me` | Sim | 200 com perfil; 404 se usuário ausente |
@@ -259,6 +261,8 @@ Cadastro (`POST /api/usuarios`):
 ```json
 { "nome": "Maria Silva", "email": "maria@example.com", "senha": "SenhaExemplo123!" }
 ```
+
+A recuperação recebe `{"email":"..."}` e envia um link para `/redefinir-senha?token=...`; a redefinição recebe `{"token":"...","senha":"..."}`. O token de recuperação expira em 30 minutos, é armazenado como hash e aceita apenas um uso. Uma nova solicitação invalida a anterior. As duas rotas limitam, em conjunto, 10 requisições por IP a cada 15 minutos, por instância. A alteração de senha não revoga JWTs já emitidos.
 
 O token de confirmação expira após 24 horas; a API não remove automaticamente o cadastro pendente expirado. O link enviado aponta para o frontend em `/confirmar?token=...`. O frontend precisa chamar a rota de confirmação da API. Após confirmar, faça login (`POST /api/auth/login`):
 

@@ -81,6 +81,8 @@ public sealed record SentEmail(string Email, string Nome, string Token);
 public sealed class CapturingEmailService : IEmailService
 {
     public ConcurrentQueue<SentEmail> Sent { get; } = new();
+    public ConcurrentQueue<SentEmail> Recovery { get; } = new();
+    public Task EnviarEmailRecuperacaoAsync(string email, string nome, string token) { Recovery.Enqueue(new(email, nome, token)); return Task.CompletedTask; }
     public Task EnviarEmailConfirmacaoAsync(string email, string nome, string token)
     {
         Sent.Enqueue(new(email, nome, token));

@@ -9,6 +9,8 @@ public class Usuario
     public string Nome { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string SenhaHash { get; set; } = string.Empty;
+    public string? RecuperacaoTokenHash { get; set; }
+    public DateTime? RecuperacaoExpiraEm { get; set; }
     public bool Ativo { get; set; } = false;
     public string? TokenConfirmacao { get; set; }
     public DateTime? TokenExpiraEm { get; set; }
